@@ -1,13 +1,18 @@
--- Get all the computers, service accounts, and their respective passwords.
+-- Get all the computers, service accounts, services and their respective updates.
 EXEC dbo.GetComputerInstance
 		@Passphrase = N'a54965a34d2407786456380953cedb89'
 
--- Get the computer MOGUPTA-PC01, service accounts, and their respective passwords.
+-- Get the computer Contoso, service accounts, and their respective updates.
 EXEC dbo.GetComputerInstance
-		@ComputerName = 'MOGUPTA-PC01',
+		@ComputerName = 'Contoso',
 		@Passphrase = N'a54965a34d2407786456380953cedb89'
 
--- Get all the computer that use the service accounts, 'Domain\SQLSvc', and their respective passwords.
+-- Get all the computer that use the service accounts, 'Domain\SQLSvc', and their respective updates.
 EXEC dbo.GetComputerInstance
 		@ServiceAccountName = 'Domain\SQLSvc',
+		@Passphrase = N'a54965a34d2407786456380953cedb89'
+
+-- Get all the computers, service accounts, services and their respective updates.
+EXEC dbo.GetComputerInstance
+		@ServiceType = 'SQLServer',
 		@Passphrase = N'a54965a34d2407786456380953cedb89'

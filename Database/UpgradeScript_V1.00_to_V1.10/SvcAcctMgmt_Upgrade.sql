@@ -1,23 +1,4 @@
-USE master
-GO
-
-CREATE DATABASE SvcAcctMgmt
-GO
-
 USE SvcAcctMgmt
-GO
-
-CREATE TABLE dbo.ComputerInstance (
-   ID INT PRIMARY KEY IDENTITY(1,1) NOT NULL,
-   ComputerName VARCHAR(255) NOT NULL,
-   ServiceTypeID INT NOT NULL DEFAULT (1),
-   ServiceAccountName VARCHAR(255) NOT NULL,
-   NewServiceAccountName VARCHAR(255) NULL,
-   ServiceAccountOldPassword VARBINARY(256) NULL,
-   ServiceAccountNewPassword VARBINARY(256) NOT NULL)
-GO
-
-CREATE UNIQUE NONCLUSTERED INDEX idx_u_ComputerInstance ON dbo.ComputerInstance(ComputerName,ServiceType,ServiceAccountName)
 GO
 
 CREATE TABLE dbo.ServiceType (
@@ -34,6 +15,54 @@ INSERT INTO dbo.ServiceType (ServiceType)
 VALUES ('All'), ('SqlServer'),('SqlAgent'),('AnalysisServer')
 GO
 
+CREATE TABLE dbo.Tmp_ComputerInstance
+	(
+	ID int NOT NULL IDENTITY (1, 1),
+	ComputerName varchar(255) NOT NULL,
+	ServiceTypeID int NOT NULL,
+	ServiceAccountName varchar(255) NOT NULL,
+	NewServiceAccountName varchar(255) NULL,
+	ServiceAccountOldPassword varbinary(256) NULL,
+	ServiceAccountNewPassword varbinary(256) NOT NULL
+	)  ON [PRIMARY]
+GO
+
+ALTER TABLE dbo.Tmp_ComputerInstance ADD CONSTRAINT
+	DF_ComputerInstance_ServiceTypeID DEFAULT 1 FOR ServiceTypeID
+GO
+
+SET IDENTITY_INSERT dbo.Tmp_ComputerInstance ON
+GO
+
+IF EXISTS(SELECT * FROM dbo.ComputerInstance)
+	 EXEC('INSERT INTO dbo.Tmp_ComputerInstance (ID, ComputerName, ServiceAccountName, ServiceAccountOldPassword, ServiceAccountNewPassword)
+		SELECT ID, ComputerName, ServiceAccountName, ServiceAccountOldPassword, ServiceAccountNewPassword FROM dbo.ComputerInstance WITH (HOLDLOCK TABLOCKX)')
+GO
+
+SET IDENTITY_INSERT dbo.Tmp_ComputerInstance OFF
+GO
+
+DROP TABLE dbo.ComputerInstance
+GO
+
+EXECUTE sp_rename N'dbo.Tmp_ComputerInstance', N'ComputerInstance', 'OBJECT' 
+GO
+
+ALTER TABLE dbo.ComputerInstance ADD CONSTRAINT
+	PK_ComputerInstance_ID PRIMARY KEY CLUSTERED 
+	(
+	ID
+	) WITH( STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX idx_u_ComputerInstance ON dbo.ComputerInstance
+	(
+	ComputerName,
+	ServiceAccountName
+	) WITH( STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+GO
+
 ALTER TABLE dbo.ComputerInstance ADD CONSTRAINT
 	FK_ComputerInstance_ServiceType FOREIGN KEY
 	(
@@ -46,7 +75,7 @@ ALTER TABLE dbo.ComputerInstance ADD CONSTRAINT
 	
 GO
 
-CREATE PROC dbo.GetComputerInstance
+ALTER PROC dbo.GetComputerInstance
    @ComputerName VARCHAR(255) = NULL,
    @ServiceAccountName VARCHAR(255) = NULL,
    @ServiceType VARCHAR(25) = 'All',
@@ -101,7 +130,7 @@ BEGIN
 END
 GO
 
-CREATE PROC dbo.AddComputerInstance
+ALTER PROC dbo.AddComputerInstance
    @ComputerName VARCHAR(255),
    @ServiceType VARCHAR(25) = 'All',
    @ServiceAccountName VARCHAR(255),
